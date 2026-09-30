@@ -6,7 +6,7 @@ name: HiFINI-Auto-CheckIn
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 22 * * *" # 北京时间上午06:30
+    - cron: "0 16 * * *" # 北京时间上午00:00
 
 jobs:
   build:
@@ -20,20 +20,41 @@ jobs:
       TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
       GOTIFY_URL: ${{ secrets.GOTIFY_URL }}
       GOTIFY_APP_TOKEN: ${{ secrets.GOTIFY_APP_TOKEN }}
+
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up JDK 8
         uses: actions/setup-java@v3
         with:
           java-version: '8'
           distribution: 'temurin'
+
       - name: Build with Maven
         run: |
           mvn compile
-          mvn -B exec:java \
-          -Dexec.mainClass=cloud.ohiyou.HifiniApplication \
-          -Dexec.cleanupDaemonThreads=false
+
+      - name: CheckIn
+        run: |
+          for i in {1..10}; do
+            echo "========================================"
+            echo "第 $i/10 次签到尝试"
+            echo "========================================"
+
+            if mvn -B exec:java \
+              -Dexec.mainClass=cloud.ohiyou.HifiniApplication \
+              -Dexec.cleanupDaemonThreads=false; then
+              echo "签到成功！"
+              exit 0
+            fi
+
+            echo "第 $i 次签到失败，立即进行下一次尝试..."
+          done
+
+          echo "10 次签到全部失败，任务结束。"
+          exit 1
+
     permissions:
-      contents: read    # 允许 checkout 代码   
+      contents: read
